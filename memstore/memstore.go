@@ -1,7 +1,7 @@
 package memstore
 
 import (
-	"github.com/changyenh/sessions"
+	"github.com/gin-contrib/sessions"
 	"github.com/quasoft/memstore"
 )
 

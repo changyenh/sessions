@@ -1,4 +1,4 @@
-module github.com/changyenh/sessions
+module github.com/gin-contrib/sessions
 
 go 1.13
 

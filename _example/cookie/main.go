@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/changyenh/sessions"
-	"github.com/changyenh/sessions/cookie"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 )
 
