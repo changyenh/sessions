@@ -1,11 +1,13 @@
 package redis
 
 import (
+	"context"
 	"errors"
+	"github.com/go-redis/redis/v8"
+	"github.com/rbcervilla/redisstore/v8"
+	"strconv"
 
-	"github.com/boj/redistore"
 	"github.com/gin-contrib/sessions"
-	"github.com/gomodule/redigo/redis"
 )
 
 type Store interface {
@@ -25,8 +27,15 @@ type Store interface {
 //
 // It is recommended to use an authentication key with 32 or 64 bytes. The encryption key,
 // if set, must be either 16, 24, or 32 bytes to select AES-128, AES-192, or AES-256 modes.
-func NewStore(size int, network, address, password string, keyPairs ...[]byte) (Store, error) {
-	s, err := redistore.NewRediStore(size, network, address, password, keyPairs...)
+func NewStore(size int, address, password string) (Store, error) {
+	ctx := context.Background()
+	rdb := redis.NewUniversalClient(&redis.UniversalOptions{
+		Addrs:              []string{address},
+		DB:                 0,
+		Password:           password,
+		PoolSize:           size,
+	})
+	s, err := redisstore.NewRedisStore(ctx, rdb)
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +46,19 @@ func NewStore(size int, network, address, password string, keyPairs ...[]byte) (
 // redis DB instead of using the default one ("0")
 //
 // Ref: https://godoc.org/github.com/boj/redistore#NewRediStoreWithDB
-func NewStoreWithDB(size int, network, address, password, DB string, keyPairs ...[]byte) (Store, error) {
-	s, err := redistore.NewRediStoreWithDB(size, network, address, password, DB, keyPairs...)
+func NewStoreWithDB(size int, address, password, DB string) (Store, error) {
+	ctx := context.Background()
+	db, err := strconv.Atoi(DB)
+	if err != nil {
+		return nil, err
+	}
+	rdb := redis.NewUniversalClient(&redis.UniversalOptions{
+		Addrs:              []string{address},
+		DB:                 db,
+		Password:           password,
+		PoolSize:           size,
+	})
+	s, err := redisstore.NewRedisStore(ctx, rdb)
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +68,9 @@ func NewStoreWithDB(size int, network, address, password, DB string, keyPairs ..
 // NewStoreWithPool instantiates a RediStore with a *redis.Pool passed in.
 //
 // Ref: https://godoc.org/github.com/boj/redistore#NewRediStoreWithPool
-func NewStoreWithPool(pool *redis.Pool, keyPairs ...[]byte) (Store, error) {
-	s, err := redistore.NewRediStoreWithPool(pool, keyPairs...)
+func NewStoreWithRedis(redis *redis.UniversalClient) (Store, error) {
+	ctx := context.Background()
+	s, err := redisstore.NewRedisStore(ctx, *redis)
 	if err != nil {
 		return nil, err
 	}
@@ -57,33 +78,33 @@ func NewStoreWithPool(pool *redis.Pool, keyPairs ...[]byte) (Store, error) {
 }
 
 type store struct {
-	*redistore.RediStore
+	*redisstore.RedisStore
 }
 
 // GetRedisStore get the actual woking store.
 // Ref: https://godoc.org/github.com/boj/redistore#RediStore
-func GetRedisStore(s Store) (err error, rediStore *redistore.RediStore) {
+func GetRedisStore(s Store) (err error, redisStore *redisstore.RedisStore) {
 	realStore, ok := s.(*store)
 	if !ok {
 		err = errors.New("unable to get the redis store: Store isn't *store")
 		return
 	}
 
-	rediStore = realStore.RediStore
+	redisStore = realStore.RedisStore
 	return
 }
 
 // SetKeyPrefix sets the key prefix in the redis database.
 func SetKeyPrefix(s Store, prefix string) error {
-	err, rediStore := GetRedisStore(s)
+	err, redisStore := GetRedisStore(s)
 	if err != nil {
 		return err
 	}
 
-	rediStore.SetKeyPrefix(prefix)
+	redisStore.KeyPrefix(prefix)
 	return nil
 }
 
 func (c *store) Options(options sessions.Options) {
-	c.RediStore.Options = options.ToGorillaOptions()
+	c.RedisStore.Options(*options.ToGorillaOptions())
 }
