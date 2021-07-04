@@ -1,7 +1,7 @@
 package mongo
 
 import (
-	"github.com/gin-contrib/sessions"
+	"github.com/changyenh/sessions"
 	"github.com/globalsign/mgo"
 	"github.com/kidstuff/mongostore"
 )

@@ -7,7 +7,7 @@ import (
 	"github.com/rbcervilla/redisstore/v8"
 	"strconv"
 
-	"github.com/gin-contrib/sessions"
+	"github.com/changyenh/sessions"
 )
 
 type Store interface {
